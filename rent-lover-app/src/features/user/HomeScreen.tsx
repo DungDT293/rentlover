@@ -10,7 +10,11 @@ import { CompanionCard } from './components/CompanionCard';
 import { OnlineServicesSection } from './components/OnlineServicesSection';
 import { BottomTabBar } from './components/BottomTabBar';
 
-export function HomeScreen() {
+type HomeScreenProps = {
+  onViewProfile: (id: string) => void;
+};
+
+export function HomeScreen({ onViewProfile }: HomeScreenProps) {
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
 
   const onlineCompanions = COMPANIONS.filter((c) => c.isOnline);
@@ -40,7 +44,7 @@ export function HomeScreen() {
           <CompanionCard
             key={companion.id}
             companion={companion}
-            onViewProfile={() => {}}
+            onViewProfile={onViewProfile}
           />
         ))}
 
@@ -53,7 +57,7 @@ export function HomeScreen() {
           <CompanionCard
             key={companion.id}
             companion={companion}
-            onViewProfile={() => {}}
+            onViewProfile={onViewProfile}
           />
         ))}
 

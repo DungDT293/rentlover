@@ -2,9 +2,11 @@ import {
   BookingTimelineItem,
   CompanionProfile,
   IncidentItem,
+  MockReview,
   OnlineService,
   QuickFilter,
   RoleOption,
+  ServiceOption,
   TabItem,
 } from '../types/domain';
 
@@ -174,6 +176,39 @@ export const BOOKING_TIMELINE: BookingTimelineItem[] = [
   { state: 'in_progress', label: 'Đang diễn ra', note: 'Check-in tại điểm hẹn công khai, bắt đầu buổi gặp.' },
   { state: 'completed', label: 'Hoàn tất', note: 'Escrow giải ngân, hai bên đánh giá sau buổi gặp.' },
 ];
+
+export const SERVICE_OPTIONS: ServiceOption[] = [
+  { id: 's1', label: 'Cà phê & trò chuyện', icon: 'cafe-outline' },
+  { id: 's2', label: 'Xem phim', icon: 'film-outline' },
+  { id: 's3', label: 'Đi dạo', icon: 'walk-outline' },
+  { id: 's4', label: 'Tham gia sự kiện', icon: 'people-outline' },
+];
+
+export const MOCK_REVIEWS: MockReview[] = [
+  {
+    id: 'r1',
+    userName: 'Ngọc T.',
+    rating: 5,
+    text: 'Rất dễ chịu, mình cảm thấy thoải mái như đi chơi với bạn thân vậy.',
+    date: '18/04/2026',
+  },
+  {
+    id: 'r2',
+    userName: 'Hoàng M.',
+    rating: 5,
+    text: 'Đúng giờ, lịch sự và biết cách lắng nghe. Sẽ đặt lịch lần nữa!',
+    date: '12/04/2026',
+  },
+  {
+    id: 'r3',
+    userName: 'Phương A.',
+    rating: 4,
+    text: 'Buổi gặp rất vui, không khí nhẹ nhàng. Recommend cho ai muốn có người trò chuyện.',
+    date: '05/04/2026',
+  },
+];
+
+export const PLATFORM_FEE_RATE = 0.1;
 
 export const INCIDENTS: IncidentItem[] = [
   { id: 'i1', title: 'Hàng đợi KYC', detail: '12 hồ sơ companion đang chờ đối soát CCCD/Passport.' },

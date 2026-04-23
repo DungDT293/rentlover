@@ -64,3 +64,19 @@ export type IncidentItem = {
   title: string;
   detail: string;
 };
+
+export type ServiceOption = {
+  id: string;
+  label: string;
+  icon: string;
+};
+
+export type MockReview = {
+  id: string;
+  userName: string;
+  rating: number;
+  text: string;
+  date: string;
+};
+
+export type AppScreen = 'home' | 'profile' | 'booking';
