@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -55,3 +56,30 @@ class PresignedUploadResponse(BaseModel):
     object_key: str = Field(..., description="Storage object key")
     expires_in: int = Field(..., description="URL expiry in seconds")
     public_url: str = Field(..., description="Public CDN URL after upload")
+
+
+# ── Auth ──────────────────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    phone_number: str = Field(..., min_length=9, max_length=15, pattern=r"^0\d{8,13}$")
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: str = Field(..., min_length=1, max_length=100)
+    role: str | None = Field(default=None, description="USER | COMPANION (default USER)")
+
+
+class LoginRequest(BaseModel):
+    phone_number: str = Field(..., min_length=9, max_length=15)
+    password: str = Field(..., min_length=6, max_length=128)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: str
+    phone_number: str
+    full_name: str
+    role: str
+    created_at: datetime

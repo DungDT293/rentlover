@@ -3,10 +3,14 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, WebSocket
+from fastapi import FastAPI, Depends, HTTPException, Query, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from .ai_moderator import AIModerator
+from .api.deps import get_current_user
+from .api.routers.auth import router as auth_router
+from .db.database import engine
+from .db.models import Base, User
 from .schemas import ChatMessageRequest, ModerationResult, PresignedUploadRequest, PresignedUploadResponse
 from .services.storage import R2Storage, create_r2_storage
 from .websockets.chat import chat_endpoint, manager
@@ -29,6 +33,11 @@ r2_storage: R2Storage | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global moderator, r2_storage
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables created / verified")
+
     moderator = AIModerator(ollama_base_url=OLLAMA_BASE_URL, model_name=OLLAMA_MODEL)
     logger.info("AI Moderator initialized — model=%s, ollama=%s", OLLAMA_MODEL, OLLAMA_BASE_URL)
 
@@ -42,6 +51,7 @@ async def lifespan(app: FastAPI):
 
     moderator = None
     r2_storage = None
+    await engine.dispose()
     logger.info("Services shut down")
 
 
@@ -58,6 +68,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 
 @app.get("/health")
@@ -85,7 +97,7 @@ async def moderate_chat(request: ChatMessageRequest):
 
 
 @app.post("/api/v1/media/upload-url", response_model=PresignedUploadResponse)
-async def create_upload_url(request: PresignedUploadRequest):
+async def create_upload_url(request: PresignedUploadRequest, current_user: User = Depends(get_current_user)):
     if r2_storage is None:
         raise HTTPException(status_code=503, detail="Media upload service not configured")
 
@@ -102,5 +114,5 @@ async def create_upload_url(request: PresignedUploadRequest):
 
 
 @app.websocket("/ws/chat/{room_id}")
-async def websocket_chat(websocket: WebSocket, room_id: str):
-    await chat_endpoint(websocket, room_id, moderator)
+async def websocket_chat(websocket: WebSocket, room_id: str, token: str = Query(...)):
+    await chat_endpoint(websocket, room_id, moderator, token=token)

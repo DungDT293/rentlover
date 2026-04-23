@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ..ai_moderator import AIModerator
+from ..core.security import decode_access_token
 from ..schemas import ChatMessageRequest, SenderRole
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,18 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-async def chat_endpoint(websocket: WebSocket, room_id: str, moderator: AIModerator | None) -> None:
+async def chat_endpoint(websocket: WebSocket, room_id: str, moderator: AIModerator | None, token: str | None = None) -> None:
+    user_id: str | None = None
+    if token:
+        payload = decode_access_token(token)
+        if payload is None:
+            await websocket.close(code=4001, reason="Token không hợp lệ")
+            return
+        user_id = payload.get("sub")
+    else:
+        await websocket.close(code=4001, reason="Yêu cầu xác thực")
+        return
+
     await manager.connect(room_id, websocket)
 
     try:

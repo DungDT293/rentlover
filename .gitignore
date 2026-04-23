@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 backend/venv/
 
+# Database
+*.db
+
 # Environment
 .env
 !.env.example
