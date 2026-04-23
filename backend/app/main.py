@@ -3,11 +3,13 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from .ai_moderator import AIModerator
-from .schemas import ChatMessageRequest, ModerationResult
+from .schemas import ChatMessageRequest, ModerationResult, PresignedUploadRequest, PresignedUploadResponse
+from .services.storage import R2Storage, create_r2_storage
+from .websockets.chat import chat_endpoint, manager
 
 load_dotenv()
 
@@ -21,16 +23,26 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
 
 moderator: AIModerator | None = None
+r2_storage: R2Storage | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global moderator
+    global moderator, r2_storage
     moderator = AIModerator(ollama_base_url=OLLAMA_BASE_URL, model_name=OLLAMA_MODEL)
     logger.info("AI Moderator initialized — model=%s, ollama=%s", OLLAMA_MODEL, OLLAMA_BASE_URL)
+
+    r2_storage = create_r2_storage()
+    if r2_storage:
+        logger.info("R2 Storage initialized")
+    else:
+        logger.warning("R2 Storage not configured — media upload disabled")
+
     yield
+
     moderator = None
-    logger.info("AI Moderator shut down")
+    r2_storage = None
+    logger.info("Services shut down")
 
 
 app = FastAPI(
@@ -50,7 +62,12 @@ app.add_middleware(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "model": OLLAMA_MODEL}
+    return {
+        "status": "ok",
+        "model": OLLAMA_MODEL,
+        "media_upload": r2_storage is not None,
+        "active_chat_rooms": manager.active_rooms,
+    }
 
 
 @app.post("/api/v1/moderate/chat", response_model=ModerationResult)
@@ -65,3 +82,25 @@ async def moderate_chat(request: ChatMessageRequest):
         result.message_id, result.is_flagged, result.violation_type.value, result.confidence_score,
     )
     return result
+
+
+@app.post("/api/v1/media/upload-url", response_model=PresignedUploadResponse)
+async def create_upload_url(request: PresignedUploadRequest):
+    if r2_storage is None:
+        raise HTTPException(status_code=503, detail="Media upload service not configured")
+
+    try:
+        result = r2_storage.generate_presigned_upload_url(
+            file_name=request.file_name,
+            file_type=request.file_type,
+            folder=request.folder,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return PresignedUploadResponse(**result)
+
+
+@app.websocket("/ws/chat/{room_id}")
+async def websocket_chat(websocket: WebSocket, room_id: str):
+    await chat_endpoint(websocket, room_id, moderator)

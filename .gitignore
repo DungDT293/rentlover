@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+backend/venv/
+
+# Environment
+.env
+!.env.example
+
+# Broken deps
+rent-lover-app/node_modules_broken/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

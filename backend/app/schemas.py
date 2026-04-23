@@ -42,3 +42,16 @@ class OllamaGenerateRequest(BaseModel):
 class OllamaGenerateResponse(BaseModel):
     response: str
     done: bool
+
+
+class PresignedUploadRequest(BaseModel):
+    file_name: str = Field(..., min_length=1, max_length=255, description="Original file name")
+    file_type: str = Field(..., description="MIME type (e.g. image/jpeg, video/mp4)")
+    folder: str = Field(default="uploads", description="Storage folder prefix")
+
+
+class PresignedUploadResponse(BaseModel):
+    upload_url: str = Field(..., description="Pre-signed PUT URL for direct upload")
+    object_key: str = Field(..., description="Storage object key")
+    expires_in: int = Field(..., description="URL expiry in seconds")
+    public_url: str = Field(..., description="Public CDN URL after upload")
